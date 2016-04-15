@@ -14,3 +14,15 @@ The process goes something like this:
     * [Better errors](https://github.com/charliesome/better_errors/) screen.
     * Arbitrary code.
   * **DEBUG**: The callback would run under the vulnerable state of web application, thus allowing for the issue to be debugged; the triggering of the issue would in essence be the breakpoint.
+
+## Installation
+
+TBD
+
+## Usage
+
+TBD
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/arachni/arachni-debug-rack.
