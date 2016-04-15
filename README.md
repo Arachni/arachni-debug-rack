@@ -6,7 +6,7 @@ The process goes something like this:
 
 * Install `arachni-debug-rack` in web application.
 * Run Arachni scan.
-* Run `arachni_debug_rack_issue` with the AFR report, `Issue#digest` and callback.
+* Run `arachni_debug_rack_issue` with the scan report, `Issue#digest` and callback.
   * Replays issue.
   * Runs callback.
     * [IRB](https://en.wikipedia.org/wiki/Interactive_Ruby_Shell)
