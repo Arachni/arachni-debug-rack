@@ -1,12 +1,12 @@
-# arachni-rack-debug
+# arachni-debug-rack
 
 Allows debugging of issues idenified by [Arachni](http://www.arachni-scanner.com) in [Rack](https://github.com/rack/rack)-based web applications ([Rails](http://rubyonrails.org/), [Sinatra](http://sinatrarb.com/), etc.) by running user specified code upon issue reproduction.
 
 The process goes something like this:
 
-* Install `arachni-rack-debug` in web application.
+* Install `arachni-debug-rack` in web application.
 * Run Arachni scan.
-* Run `arachni_rack_debug_issue` with the AFR report, `Issue#digest` and callback.
+* Run `arachni_debug_rack_issue` with the AFR report, `Issue#digest` and callback.
   * Replays issue.
   * Runs callback.
     * [IRB](https://en.wikipedia.org/wiki/Interactive_Ruby_Shell)
