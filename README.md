@@ -8,15 +8,15 @@ The process goes something like this:
 
 * Install `arachni-debug-rack` in web application.
   * Set desired callback.
-* Run Arachni scan.
-* Run `arachni_debug_rack_issue` with the scan report and `Issue#digest`.
-  * Replays issue.
-  * Runs callback.
     * [IRB](https://en.wikipedia.org/wiki/Interactive_Ruby_Shell)
     * [Pry](https://github.com/pry/pry/)
       * [Remote](https://github.com/Mon-Ouie/pry-remote) as well.
     * [Better errors](https://github.com/charliesome/better_errors/) -- pending.
     * External Ruby scripts.
+* Run Arachni scan.
+* Run `arachni_debug_rack_issue` with the scan report and `Issue#digest`.
+  * Replays issue.
+  * Runs callback.
   * **DEBUG**: The callback runs under the vulnerable state of web application,
     thus allowing for the issue to be debugged.
 
