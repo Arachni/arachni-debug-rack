@@ -1,4 +1,7 @@
-#!/usr/bin/env arachni_script
+#!/usr/bin/env ruby
+
+require 'arachni'
+include Arachni
 
 def h( string, character  )
     print character * 50
