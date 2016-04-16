@@ -67,7 +67,7 @@ if !File.exist?( ARGV[0] )
     exit 1
 end
 
-report       = Arachni::Report.load( ARGV[0] )
+report       = Report.load( ARGV[0] )
 issue_digest = ARGV[1].to_i
 
 issue = report.issues.find { |i| i.digest == issue_digest }
