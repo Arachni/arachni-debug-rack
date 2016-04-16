@@ -26,45 +26,49 @@ The process goes something like this:
 
 Add the following to your `Gemfile`:
 
-    gem 'arachni-debug-rack', github: 'Arachni/arachni-debug-rack'
+```ruby
+gem 'arachni-debug-rack', github: 'Arachni/arachni-debug-rack'
+```
 
 Then run `bundle install`.
 
 Setup the middleware:
 
-    require 'arachni/debug/rack'
+```ruby
+require 'arachni/debug/rack'
 
-    use Arachni::Debug::Rack::Middleware,
-        # Only track execution of code in files under this directory and its children.
-        # You probably want to set this to your application's root directory.
-        scope:    __dir__, # Optional
+use Arachni::Debug::Rack::Middleware,
+    # Only track execution of code in files under this directory and its children.
+    # You probably want to set this to your application's root directory.
+    scope:    __dir__, # Optional
 
-        # Mandatory callback configuration, needs at least a name.
-        callback: {
-            # Launch 'irb' in the terminal of the web application.
-            name:    'irb'
+    # Mandatory callback configuration, needs at least a name.
+    callback: {
+        # Launch 'irb' in the terminal of the web application.
+        name:    'irb'
 
-            # Launch 'pry' in the terminal of the web application.
-            # You need to install 'pry' yourself.
-            # name:    'pry'
+        # Launch 'pry' in the terminal of the web application.
+        # You need to install 'pry' yourself.
+        # name:    'pry'
 
-            # Launch a 'pry' server, accessible using 'pry-remote'.
-            # You need to install 'pry-remote' yourself.
-            # name:    'callbacks/pry_remote.rb',
-            # options: {             # Optional
-            #     host: '127.0.0.2', # Optional
-            #     port: 9999         # Optional
-            # }
+        # Launch a 'pry' server, accessible using 'pry-remote'.
+        # You need to install 'pry-remote' yourself.
+        # name:    'callbacks/pry_remote.rb',
+        # options: {             # Optional
+        #     host: '127.0.0.2', # Optional
+        #     port: 9999         # Optional
+        # }
 
-            # Load an external script to run under the middleware context, with
-            # access to all relevant trace points and bindings.
-            # name:    '/path/to/external/script.rb',
-            # You can also pass options to your script, accessible via the
-            # `options` variable.
-            # options: {           # Optional
-            #     random: 'option' # Optional
-            # }
-        }
+        # Load an external script to run under the middleware context, with
+        # access to all relevant trace points and bindings.
+        # name:    '/path/to/external/script.rb',
+        # You can also pass options to your script, accessible via the
+        # `options` variable.
+        # options: {           # Optional
+        #     random: 'option' # Optional
+        # }
+    }
+```
 
 ## Usage
 
