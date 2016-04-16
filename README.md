@@ -106,6 +106,8 @@ your hands on the resulting AFR report, for example:
 
     ./bin/arachni http://127.0.0.2:4567/ --checks xss --browser-cluster-pool-size=0 --report-save-path=report.afr
 
+`report.afr` if the file we want.
+
 ### Step 3
 
 Copy the `Digest` of the issue you'd like to debug, which you can find towards the
@@ -129,7 +131,7 @@ Pass the report and the issue digest to `arachni_debug_rack_issue` like so:
 This will actually be executed by the `arachni_script` executable, which is
 provided by the [Arachni](http://www.arachni-scanner.com/download/) packages.
 
-If you get the following error please ensure "Step 1" was successful:
+If you get the following error please ensure _Step 1_ was successful:
 
     /usr/bin/env: arachni_script: No such file or directory
 
@@ -334,7 +336,7 @@ This is a helper method, showing that type of information in a human readable fo
 This is the actual data behind the `list_trace_points` output.
 
 The most interesting bits are the `:bindings`, which allow us to get a glimpse
-info the state of the web application at different stages while processing out request.
+info the state of the web application at different stages while processing our request.
 
 ##### Stepping into bindings
 
@@ -428,12 +430,12 @@ multiple times, for example:
 
 #### trace_points_for_debug_id
 
-[12] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_debug_id '<some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>'
-=> {2=>
-  [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x007f05ec04b980>, :timestamp=>2016-04-16 22:44:52 +0300},
-   {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x007f05ec04b868>, :timestamp=>2016-04-16 22:44:52 +0300},
-   {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x007f05ec04b750>, :timestamp=>2016-04-16 22:44:52 +0300},
-   {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x007f05ec04b4f8>, :timestamp=>2016-04-16 22:44:52 +0300}]}
+    [12] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_debug_id '<some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>'
+    => {2=>
+      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x007f05ec04b980>, :timestamp=>2016-04-16 22:44:52 +0300},
+       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x007f05ec04b868>, :timestamp=>2016-04-16 22:44:52 +0300},
+       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x007f05ec04b750>, :timestamp=>2016-04-16 22:44:52 +0300},
+       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x007f05ec04b4f8>, :timestamp=>2016-04-16 22:44:52 +0300}]}
 
 Raw data behind `list_trace_points_for_debug_id`.
 
