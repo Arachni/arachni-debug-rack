@@ -1,7 +1,13 @@
 #!/usr/bin/env ruby
 
 require 'arachni'
+
+spec = Gem::Specification.find_by_name( 'arachni' )
+require "#{spec.gem_dir}/ui/cli/output"
+
 include Arachni
+include Utilities
+include UI::Output
 
 def h( string, character  )
     print character * 50
