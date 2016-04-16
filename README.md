@@ -73,7 +73,7 @@ use Arachni::Debug::Rack::Middleware,
 ## Usage
 
 You can try these instructions with the provided
-[example Sinatra application](https://github.com/arachni/arachni-debug-rack/master/examples/server.rb):
+[example Sinatra application](https://github.com/Arachni/arachni-debug-rack/blob/master/examples/server.rb):
 
     # We could just use IRB for these example, but 'pry' will really drive this home.
     gem install pry
