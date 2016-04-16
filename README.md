@@ -20,7 +20,7 @@ The process goes something like this:
   * **DEBUG**: The callback runs under the vulnerable state of web application,
     thus allowing for the issue to be debugged.
 
-**Still in alpha phase, may break compatibility (or altogether) without warning).**
+**Still in alpha phase, may break compatibility (or altogether) without warning.**
 
 ## Installation
 
