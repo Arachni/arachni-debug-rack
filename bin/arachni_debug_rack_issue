@@ -1,0 +1,190 @@
+#!/usr/bin/env arachni_script
+
+def h( string, character  )
+    print character * 50
+    print " #{string} "
+    print character * 50
+    puts
+end
+
+def h1( string )
+    h string, '='
+end
+
+def h2( string )
+    h string, '-'
+end
+
+def h3( string )
+    h string, '~'
+end
+
+def print_banner
+    print <<EOU
+                    Arachni Debug Rack Issue
+    Author:  Tasos "Zapotek" Laskos <tasos.laskos@arachni-scanner.com>
+    Website: https://github.com/Arachni/arachni-debug-rack
+EOU
+end
+
+def print_usage
+    print <<EOU
+    Usage:
+
+        #{File.basename(__FILE__)} REPORT ISSUE_DIGEST
+EOU
+end
+
+if ARGV.empty?
+    print_banner
+    puts
+    print_usage
+    exit 1
+end
+
+if ARGV.size < 2
+    print_banner
+
+    puts
+    STDERR.puts '[ERROR] Missing options!'
+    puts
+
+    print_usage
+    exit 1
+end
+
+if !File.exist?( ARGV[0] )
+    STDERR.puts "Report does not exist: #{ARGV[0]}"
+    exit 1
+end
+
+report       = Arachni::Report.load( ARGV[0] )
+issue_digest = ARGV[1].to_i
+
+issue = report.issues.find { |i| i.digest == issue_digest }
+
+if !issue
+    STDERR.puts "Issue digest does not exist: #{issue_digest}"
+    exit 1
+end
+
+fail 'Cannot debug passive issues.' if issue.passive?
+
+puts
+h1 "#{issue.name} in #{issue.vector.type} input " <<
+       "#{issue.affected_input_name.inspect}"
+puts "#{' ' * 30} Using #{issue.affected_input_value.inspect}"
+puts "#{' ' * 30} At #{issue.page.dom.url}"
+
+puts issue.description
+puts
+
+puts "Digest:     #{issue.digest}"
+puts "Severity:   #{issue.severity.to_s.capitalize}"
+puts "Tags:       #{issue.tags.join(', ')}" if issue.tags.is_a?( Array )
+puts
+
+if issue.cwe_url
+    puts "CWE: #{issue.cwe_url}"
+    puts
+end
+
+if issue.references
+    puts 'References:'
+    issue.references.each{ |ref| puts "  #{ref[0]} - #{ref[1]}" }
+    puts
+end
+
+puts "URL:        #{issue.vector.action}"
+puts "Element:    #{issue.vector.type}"
+
+if issue.vector.respond_to? :inputs
+    puts "All inputs: #{issue.vector.inputs.keys.join(', ')}"
+end
+
+puts "Method:     #{issue.vector.method.to_s.upcase}"
+puts "Input name: #{issue.affected_input_name}"
+
+puts
+if issue.vector.respond_to? :seed
+    puts "Seed:      #{issue.vector.seed.inspect}"
+end
+
+puts "Injected:  #{issue.vector.affected_input_value.inspect}"
+
+puts "Signature: #{issue.signature}"     if issue.signature
+puts "Proof:     #{issue.proof.inspect}" if issue.proof
+
+puts
+puts "Referring page: #{issue.referring_page.dom.url}"
+if issue.referring_page.dom.transitions.any?
+    puts 'DOM transitions:'
+    issue.referring_page.dom.print_transitions( method(:puts), '    ' )
+end
+
+puts
+puts "Affected page:  #{issue.page.dom.url}"
+
+if !issue.request.to_s.empty?
+    puts "HTTP request\n#{issue.request}"
+end
+
+if issue.page.dom.transitions.any?
+    puts 'DOM transitions:'
+    issue.page.dom.print_transitions( method(:puts), '    ' )
+end
+
+if issue.remarks.any?
+    puts
+    puts 'Remarks'
+    puts '-------'
+    issue.remarks.each do |logger, remarks|
+        puts "  By #{logger}:"
+        remarks.each do |remark|
+            puts "    *  #{word_wrap remark}"
+        end
+    end
+
+    puts
+end
+
+h2 'Reproducing'
+puts
+
+# Make sure we restore the options for the previous scan.
+Options.update report.options
+
+if !(issue = issue.recheck)
+    fail "Could not reproduce #{issue}"
+end
+
+puts
+
+# We do it this way to ensure fresh session and tokens etc.
+response = issue.vector.submit(
+    mode:    :sync,
+
+    # Can be set to anything, so assign the seed to allow searching and whatnot
+    # during debugging.
+    headers: {
+        'X-Arachni-Debug-Id' => issue.vector.seed
+        # 'X-Arachni-Debug-Id' => 'stuff'
+    }
+)
+
+h2 'Seed'
+puts
+puts issue.vector.seed
+puts
+puts 'You can use the above to identify tainted inputs (params, cookies, etc.)' <<
+         ' and sinks (response bodies, SQL queries etc.).'
+puts "It is accessible via the 'X-Arachni-Debug-Id' header: env['HTTP_X_ARACHNI_DEBUG_ID']"
+puts
+h2 'Request'
+puts
+puts response.request.to_s
+puts
+h2 'Response'
+puts
+puts response.to_s
+puts
