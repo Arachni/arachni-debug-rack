@@ -79,7 +79,58 @@ You can try these instructions with the provided
     gem install pry
     bundle exec ruby examples/server.rb -o 0.0.0.0
 
-### Step 1
+### Without Arachni
+
+This project is meant to be used to debug vulnerabilities identified by Arachni,
+but the server-side callbacks can be triggered by any request so long as it sets
+the `Arachni-Debug-Rack-Id` header.
+
+For example:
+
+    $ curl http://127.0.0.2:4567/?myparam=myval -H X-Arachni-Debug-Id:MyID
+        <a href="/xss?a=b">XSS</a>
+
+And on the server side:
+
+    127.0.0.1 - - [16/Apr/2016:23:30:16 +0300] "GET /?myparam=myval HTTP/1.1" 200 31 0.0116
+    [1] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
+    ============================== Request #1 -- MyID
+    0: [2016-04-16 23:30:16 +0300] examples/server.rb:10 Sinatra::Application#GET / call in Sinatra::Application#GET /
+    1: [2016-04-16 23:30:16 +0300] examples/server.rb:10 Sinatra::Application#GET / b_call in Sinatra::Application#GET /
+    2: [2016-04-16 23:30:16 +0300] examples/server.rb:11 Sinatra::Application#GET / line in Sinatra::Application#GET /
+    3: [2016-04-16 23:30:16 +0300] examples/server.rb:14 Sinatra::Application#GET / b_return in Sinatra::Application#GET /
+    => nil
+    [2] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points.values.first.first[:binding].pry
+
+    From: /home/zapotek/workspace/arachni-debug-rack/examples/server.rb @ line 10 self.GET /:
+
+         5:     scope:    __dir__,
+         6:     callback: {
+         7:         name: 'pry'
+         8:     }
+         9:
+     => 10: get '/' do
+        11:     <<EOHTML
+        12:     <a href="/xss?a=b">XSS</a>
+        13: EOHTML
+        14: end
+        15:
+
+    [1] pry(#<Sinatra::Application>)> __method__
+    => :"GET /"
+    [2] pry(#<Sinatra::Application>)> params
+    => {"myparam"=>"myval"}
+    [3] pry(#<Sinatra::Application>)>
+
+As you can see the Pry console was launched and we were able to do some pretty
+cool stuff with it.
+
+### With Arachni
+
+When used with Arachni it is possible to load scan reports and specify issues
+to debug.
+
+#### Step 1
 
 Download one of the [Arachni packages](http://www.arachni-scanner.com/download/)
 and configure your `$PATH` env variable to include its `bin/` directory:
@@ -99,7 +150,7 @@ Otherwise you'll see Arachni's version information.
 
 **Please make sure that this is the only instance of Arachni on your system.**
 
-### Step 2
+#### Step 2
 
 Scan the web application using [Arachni](http://www.arachni-scanner.com) and get
 your hands on the resulting AFR report, for example:
@@ -108,7 +159,7 @@ your hands on the resulting AFR report, for example:
 
 `report.afr` if the file we want.
 
-### Step 3
+#### Step 3
 
 Copy the `Digest` of the issue you'd like to debug, which you can find towards the
 top of each issue printout:
@@ -122,7 +173,7 @@ In this case we only have one issue, with a digest of `2593139878`.
 
 _This information is included in all report formats._
 
-### Step 4
+#### Step 4
 
 Pass the report and the issue digest to `arachni_debug_rack_issue` like so:
 
@@ -243,7 +294,7 @@ If everything went OK, you'll see something like:
 
     b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
 
-### Step 5
+#### Step 5
 
 **Tada!**
 
@@ -307,7 +358,7 @@ We're now operating under the context of the middleware, see:
 
 Now let's look at some cool stuff.
 
-#### list_trace_points
+##### list_trace_points
 
     [2] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
     ============================== Request #1 -- </textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
@@ -323,7 +374,7 @@ the request that brought it to its vulnerable state.
 
 This is a helper method, showing that type of information in a human readable format.
 
-#### trace_points
+##### trace_points
 
     [3] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points
     => {1=>
@@ -338,7 +389,7 @@ This is the actual data behind the `list_trace_points` output.
 The most interesting bits are the `:bindings`, which allow us to get a glimpse
 info the state of the web application at different stages while processing our request.
 
-##### Stepping into bindings
+###### Stepping into bindings
 
     [4] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points.values.first.first[:binding].pry
 
@@ -369,7 +420,7 @@ We've now moved under the context of the web application, see:
 The response body clearly includes the parameter value unescaped, which is why
 the web application is vulnerable.
 
-#### list_trace_points_for_request_id
+##### list_trace_points_for_request_id
 
 This is a helper method, allowing us to filter trace points based on the request index,
 in case we're run `arachni_debug_rack_issue` multiple times, for example:
@@ -393,7 +444,7 @@ in case we're run `arachni_debug_rack_issue` multiple times, for example:
     3: [2016-04-16 22:44:50 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
     => nil
 
-#### trace_points_for_request_id
+##### trace_points_for_request_id
 
     [3] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_request_id 1
     => [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x000000029f2430>, :timestamp=>2016-04-16 22:44:50 +0300},
@@ -403,7 +454,7 @@ in case we're run `arachni_debug_rack_issue` multiple times, for example:
 
 Raw data behind `list_trace_points_for_request_id`.
 
-#### list_trace_points_for_debug_id
+##### list_trace_points_for_debug_id
 
 This is a helper method, allowing us to filter trace points based on the value
 of the `X-Arachni-Debug-Id` request header, in case we're run `arachni_debug_rack_issue`
@@ -428,7 +479,7 @@ multiple times, for example:
     2: [2016-04-16 22:44:52 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
     3: [2016-04-16 22:44:52 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
 
-#### trace_points_for_debug_id
+##### trace_points_for_debug_id
 
     [12] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_debug_id '<some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>'
     => {2=>
