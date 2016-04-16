@@ -157,7 +157,7 @@ your hands on the resulting AFR report, for example:
 
     ./bin/arachni http://127.0.0.2:4567/ --checks xss --browser-cluster-pool-size=0 --report-save-path=report.afr
 
-`report.afr` if the file we want.
+`report.afr` is the file we want.
 
 #### Step 3
 
