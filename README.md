@@ -83,7 +83,7 @@ You can try these instructions with the provided
 
 This project is meant to be used to debug vulnerabilities identified by Arachni,
 but the server-side callbacks can be triggered by any request so long as it sets
-the `Arachni-Debug-Rack-Id` header.
+the `X-Arachni-Debug-Rack-Id` header.
 
 For example:
 
