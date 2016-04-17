@@ -130,36 +130,22 @@ cool stuff with it.
 When used with Arachni it is possible to load scan reports and specify issues
 to debug.
 
+For this we'll need to use one of the
+[nightly packages](http://downloads.arachni-scanner.com/nightlies/) which have
+been updated to include this project; just extract the archive and switch to
+the package directory.
+
+**Do not** download the source, only use the package when following the instructions.
+
 #### Step 1
 
-Download one of the [Arachni packages](http://www.arachni-scanner.com/download/)
-and configure your `$PATH` env variable to include its `bin/` directory:
-
-    export PATH=$PATH:/path/to/arachni/bin
-
-You can verify with:
-
-    arachni --version
-
-If you see the following it means that you probably made a typo when specifying
-the path:
-
-    arachni: command not found
-
-Otherwise you'll see Arachni's version information.
-
-**Please make sure that this is the only instance of Arachni on your system.**
-
-#### Step 2
-
-Scan the web application using [Arachni](http://www.arachni-scanner.com) and get
-your hands on the resulting AFR report, for example:
+Scan the web application and get your hands on the resulting AFR report, for example:
 
     ./bin/arachni http://127.0.0.2:4567/ --checks xss --browser-cluster-pool-size=0 --report-save-path=report.afr
 
 `report.afr` is the file we want.
 
-#### Step 3
+#### Step 2
 
 Copy the `Digest` of the issue you'd like to debug, which you can find towards the
 top of each issue printout:
@@ -173,20 +159,13 @@ In this case we only have one issue, with a digest of `2593139878`.
 
 _This information is included in all report formats._
 
-#### Step 4
+#### Step 3
 
-Pass the report and the issue digest to `arachni_debug_rack_issue` like so:
+Pass the report and the issue digest to `arachni_debug_rack_issue`, like so:
 
     ./bin/arachni_debug_rack_issue report.afr 2593139878
 
-This will actually be executed by the `arachni_script` executable, which is
-provided by the [Arachni](http://www.arachni-scanner.com/download/) packages.
-
-If you get the following error please ensure _Step 1_ was successful:
-
-    /usr/bin/env: arachni_script: No such file or directory
-
-If everything went OK, you'll see something like:
+You should then see something like:
 
     ================================================== Cross-Site Scripting (XSS) in link input "a" ==================================================
                                    Using "b<some_dangerous_input_911d4dc4346498b0467e5998d887e101/>"
@@ -294,7 +273,7 @@ If everything went OK, you'll see something like:
 
     b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
 
-#### Step 5
+#### Step 4
 
 **Tada!**
 
