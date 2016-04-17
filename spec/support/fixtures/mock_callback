@@ -1,0 +1,6 @@
+$callback_options = options
+
+instance_eval( &$spec_callback ) if $spec_callback
+$spec_callback = nil
+
+$callback_ran = true

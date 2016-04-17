@@ -6,14 +6,19 @@ module Rack
 class Middleware
 
     HEADER_NAME      = 'HTTP_X_ARACHNI_DEBUG_ID'
+
     CALLBACK_LIBRARY = "#{File.expand_path( File.dirname(__FILE__) <<
                         '../../../../../' )}/callbacks/"
+    CALLBACKS        = Dir.glob( "#{CALLBACK_LIBRARY}*.rb" ).
+                        map { |f| File.basename( f, '.rb' ) }
 
     def initialize( app, options = {} )
         @app     = app
         @options = options
 
-        fail 'Missing callback.' if !@options[:callback][:name]
+        @options[:callback] ||= {}
+
+        fail ArgumentError, 'Missing callback.' if !@options[:callback][:name]
 
         # Maybe given a path to a script outside of the default location.
         external_callback = File.expand_path( @options[:callback][:name] )
@@ -24,7 +29,8 @@ class Middleware
                 "#{CALLBACK_LIBRARY}#{@options[:callback][:name]}.rb"
 
             if !File.exist?( callback_location )
-                fail "Callback does not exist as '#{callback_location}' " <<
+                fail ArgumentError,
+                     "Callback does not exist as '#{callback_location}' " <<
                          "nor '#{external_callback}'."
             end
         end
@@ -48,7 +54,7 @@ class Middleware
 
                     eval( @callback )
                 rescue => e
-                    print_exception( e )
+                    log_exception( env['rack.logger'], e )
                 end
             end
 
@@ -58,11 +64,11 @@ class Middleware
 
         [ code, headers, body ]
     rescue => e
-        print_exception( e )
+        log_exception( env['rack.logger'], e )
     end
 
     def list_trace_points_for_debug_id( debug_id )
-        self.class.list_trace_points trace_points_for_debug_id( debug_id )
+        puts self.class.trace_points_to_string( trace_points_for_debug_id( debug_id ) )
     end
 
     def trace_points_for_debug_id( id )
@@ -75,7 +81,7 @@ class Middleware
     end
 
     def list_trace_points_for_request_id( id )
-        self.class.list_trace_points( { id => trace_points_for_request_id( id ) } )
+        puts self.class.trace_points_to_string( { id => trace_points_for_request_id( id ) } )
     end
 
     def trace_points
@@ -83,21 +89,26 @@ class Middleware
     end
 
     def list_trace_points
-        self.class.list_trace_points self.class.trace_points
+        puts self.class.trace_points_to_string( self.class.trace_points )
     end
 
     private
 
-    def print_exception( e )
-        STDERR.puts "[#{e.class}] #{e}"
+    def log_exception( logger, e )
+        s = "[#{e.class}] #{e}: #{e.backtrace.first}"
+
+        # STDERR.puts s
+        logger.error s
 
         e.backtrace.each do |l|
-            STDERR.puts l
+            # STDERR.puts l
+            logger.debug l
         end
     end
 
     def run_and_trace( debug_id, &block )
-        request_id = self.class.increment_id
+        self.class.increment_request_id
+        request_id = self.class.request_id
 
         self.class.debug_ids[request_id]  = debug_id
         self.class.trace_points[request_id] ||= []
@@ -127,19 +138,20 @@ class Middleware
 
     class <<self
         
-        def list_trace_points( trace_points )
+        def trace_points_to_string( trace_points )
+            s = ''
             trace_points.each do |request_id, batch|
-                puts "#{'=' * 30} Request ##{request_id} -- #{debug_ids[request_id]}"
+                s << "#{'=' * 30} Request ##{request_id} -- #{debug_ids[request_id]}\n"
 
                 batch.each.with_index do |b, i|
-                    puts "#{i}: [#{b[:timestamp]}] #{b[:path]}:" <<
+                    s << "#{i}: [#{b[:timestamp]}] #{b[:path]}:" <<
                             "#{b[:line_number]} #{b[:class_name]}#" <<
                             "#{b[:method_name]} #{b[:event]} in " <<
-                             "#{binding_to_string( b[:binding] )}"
+                             "#{binding_to_string( b[:binding] )}\n"
                 end
             end
 
-            nil
+            s
         end
 
         def binding_to_string( binding )
@@ -156,21 +168,30 @@ class Middleware
         end
         
         def debug_ids
-            @debug_ids ||= {}
+            @debug_ids
         end
 
-        # @private
         def trace_points
-            @trace_points ||= {}
+            @trace_points
+        end
+
+        def request_id
+            @request_id
         end
 
         # @private
-        def increment_id
-            @id ||= 0
-            @id += 1
+        def increment_request_id
+            @request_id += 1
+        end
+
+        def reset
+            @debug_ids    = {}
+            @trace_points = {}
+            @request_id   = 0
         end
 
     end
+    reset
 
 end
 end
