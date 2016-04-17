@@ -14,9 +14,9 @@ The process goes something like this:
     * [Better errors](https://github.com/charliesome/better_errors/) -- pending.
     * External Ruby scripts.
 * Run Arachni scan.
-* Run `arachni_debug_rack_issue` with the scan report and `Issue#digest`.
+* Run `arachni_debug_rack_issue` with the scan report and specify desired issue.
   * Replays issue.
-  * Runs callback.
+  * Triggers server-side callback.
   * **DEBUG**: The callback runs under the vulnerable state of web application,
     thus allowing for the issue to be debugged.
 
@@ -24,7 +24,7 @@ The process goes something like this:
 
 ## Installation
 
-Add the following to your `Gemfile`:
+Add the following to your web application's `Gemfile`:
 
 ```ruby
 gem 'arachni-debug-rack', github: 'Arachni/arachni-debug-rack'
@@ -75,7 +75,7 @@ use Arachni::Debug::Rack::Middleware,
 You can try these instructions with the provided
 [example Sinatra application](https://github.com/Arachni/arachni-debug-rack/blob/master/examples/server.rb):
 
-    # We could just use IRB for these example, but 'pry' will really drive this home.
+    # We could just use IRB for these examples, but 'pry' will really drive this home.
     gem install pry
     bundle exec ruby examples/server.rb -o 0.0.0.0
 
@@ -83,7 +83,7 @@ You can try these instructions with the provided
 
 This project is meant to be used to debug vulnerabilities identified by Arachni,
 but the server-side callbacks can be triggered by any request so long as it sets
-the `X-Arachni-Debug-Rack-Id` header.
+the `X-Arachni-Debug-Id` header.
 
 For example:
 
@@ -122,7 +122,7 @@ And on the server side:
     => {"myparam"=>"myval"}
     [3] pry(#<Sinatra::Application>)>
 
-As you can see the Pry console was launched and we were able to do some pretty
+As you can see, the Pry console was launched and we were able to do some pretty
 cool stuff with it.
 
 ### With Arachni
@@ -131,11 +131,11 @@ When used with Arachni it is possible to load scan reports and specify issues
 to debug.
 
 For this we'll need to use one of the
-[nightly packages](http://downloads.arachni-scanner.com/nightlies/) which have
+[nightly packages](http://downloads.arachni-scanner.com/nightlies/), which have
 been updated to include this project; just extract the archive and switch to
 the package directory.
 
-**Do not** download the source, only use the package when following the instructions.
+**Do not** download the source, only use the packages when following the instructions.
 
 #### Step 1
 
