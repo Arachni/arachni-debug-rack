@@ -100,7 +100,7 @@ And on the server side:
     2: [2016-04-16 23:30:16 +0300] examples/server.rb:11 Sinatra::Application#GET / line in Sinatra::Application#GET /
     3: [2016-04-16 23:30:16 +0300] examples/server.rb:14 Sinatra::Application#GET / b_return in Sinatra::Application#GET /
     => nil
-    [2] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points.values.first.first[:binding].pry
+    [2] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_request_id(1).first[:binding].pry
 
     From: /home/zapotek/workspace/arachni-debug-rack/examples/server.rb @ line 10 self.GET /:
 
@@ -370,7 +370,7 @@ info the state of the web application at different stages while processing our r
 
 ###### Stepping into bindings
 
-    [4] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points.values.first.first[:binding].pry
+    [4] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_request_id(1).first[:binding].pry
 
     From: /home/zapotek/workspace/arachni-debug-rack/examples/server.rb @ line 16 self.GET /xss:
 
