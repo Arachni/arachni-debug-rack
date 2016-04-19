@@ -5,7 +5,7 @@ module Debug
 module Rack
 class Middleware
 
-    HEADER_NAME      = 'HTTP_X_ARACHNI_DEBUG_ID'
+    HEADER_NAME      = 'HTTP_X_ARACHNI_ISSUE_DIGEST'
 
     CALLBACK_LIBRARY = "#{File.expand_path( File.dirname(__FILE__) <<
                         '../../../../../' )}/callbacks/"

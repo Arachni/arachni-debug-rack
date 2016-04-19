@@ -14,7 +14,7 @@ The process goes something like this:
     * [Better errors](https://github.com/charliesome/better_errors/) -- pending.
     * External Ruby scripts.
 * Run Arachni scan.
-* Run `arachni_debug_rack_issue` with the scan report and specify desired issue.
+* Run `arachni_reproduce` with the scan report and specify desired issue.
   * Replays issue.
   * Triggers server-side callback.
   * **DEBUG**: The callback runs under the vulnerable state of web application,
@@ -83,18 +83,21 @@ You can try these instructions with the provided
 
 This project is meant to be used to debug vulnerabilities identified by Arachni,
 but the server-side callbacks can be triggered by any request so long as it sets
-the `X-Arachni-Debug-Id` header.
+the `X-Arachni-Issue-Digest` header.
+
+That `X-Arachni-Issue-Digest` header is meant to be a numeric checksum used to
+uniquely identify issues logged by Arachni.
 
 For example:
 
-    $ curl http://127.0.0.2:4567/?myparam=myval -H X-Arachni-Debug-Id:MyID
+    $ curl http://127.0.0.2:4567/?myparam=myval -H X-Arachni-Issue-Digest:12345
         <a href="/xss?a=b">XSS</a>
 
 And on the server side:
 
     127.0.0.1 - - [16/Apr/2016:23:30:16 +0300] "GET /?myparam=myval HTTP/1.1" 200 31 0.0116
     [1] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
-    ============================== Request #1 -- MyID
+    ============================== Request #1 -- 12345
     0: [2016-04-16 23:30:16 +0300] examples/server.rb:10 Sinatra::Application#GET / call in Sinatra::Application#GET /
     1: [2016-04-16 23:30:16 +0300] examples/server.rb:10 Sinatra::Application#GET / b_call in Sinatra::Application#GET /
     2: [2016-04-16 23:30:16 +0300] examples/server.rb:11 Sinatra::Application#GET / line in Sinatra::Application#GET /
@@ -130,12 +133,8 @@ cool stuff with it.
 When used with Arachni it is possible to load scan reports and specify issues
 to debug.
 
-For this we'll need to use one of the
-[nightly packages](http://downloads.arachni-scanner.com/nightlies/), which have
-been updated to include this project; just extract the archive and switch to
-the package directory.
-
-**Do not** download the source, only use the packages when following the instructions.
+For this we'll need to use one of the [nightly packages](http://downloads.arachni-scanner.com/nightlies/),
+just extract the archive and switch to the package directory.
 
 #### Step 1
 
@@ -161,65 +160,28 @@ _This information is included in all report formats._
 
 #### Step 3
 
-Pass the report and the issue digest to `arachni_debug_rack_issue`, like so:
+Pass the report and the issue digest to `arachni_reproduce`, like so:
 
-    ./bin/arachni_debug_rack_issue report.afr 2593139878
+    ./bin/arachni_reproduce report.afr 2593139878
 
 You should then see something like:
 
-    ================================================== Cross-Site Scripting (XSS) in link input "a" ==================================================
-                                   Using "b<some_dangerous_input_911d4dc4346498b0467e5998d887e101/>"
-                                   At http://127.0.0.2:4567/xss?a=b%3Csome_dangerous_input_911d4dc4346498b0467e5998d887e101/%3E
+    Arachni - Web Application Security Scanner Framework v2.0dev
+       Author: Tasos "Zapotek" Laskos <tasos.laskos@arachni-scanner.com>
 
-    Client-side scripts are used extensively by modern web applications.
-    They perform from simple functions (such as the formatting of text) up to full
-    manipulation of client-side data and Operating System interaction.
+               (With the support of the community and the Arachni Team.)
 
-    Cross Site Scripting (XSS) allows clients to inject scripts into a request and
-    have the server return the script to the client in the response. This occurs
-    because the application is taking untrusted data (in this example, from the client)
-    and reusing it without performing any validation or sanitisation.
+       Website:       http://arachni-scanner.com
+       Documentation: http://arachni-scanner.com/wiki
 
-    If the injected script is returned immediately this is known as reflected XSS.
-    If the injected script is stored by the server and returned to any client visiting
-    the affected page, then this is known as persistent XSS (also stored XSS).
 
-    Arachni has discovered that it is possible to insert script content directly into
-    HTML element content.
+     [~] ============================ (1/1) [2593139878] Cross-Site Scripting (XSS) in link input "a" =============================
+     [~] ============================================== From: http://127.0.0.2:4567/ ==============================================
+     [~] ============= At: http://127.0.0.2:4567/xss?a=b%3Csome_dangerous_input_98d7aa6d71454cb9932cf329b7d29314/%3E ==============
+     [~] ============================ Using: b<some_dangerous_input_98d7aa6d71454cb9932cf329b7d29314/> ============================
 
-    Digest:     2593139878
-    Severity:   High
-    Tags:       xss, regexp, injection, script
 
-    CWE: http://cwe.mitre.org/data/definitions/79.html
-
-    References:
-      Secunia - http://secunia.com/advisories/9716/
-      WASC - http://projects.webappsec.org/w/page/13246920/Cross%20Site%20Scripting
-      OWASP - https://www.owasp.org/index.php/XSS_%28Cross_Site_Scripting%29_Prevention_Cheat_Sheet
-
-    URL:        http://127.0.0.2:4567/xss
-    Element:    link
-    All inputs: a
-    Method:     GET
-    Input name: a
-
-    Seed:      "<some_dangerous_input_911d4dc4346498b0467e5998d887e101/>"
-    Injected:  "b<some_dangerous_input_911d4dc4346498b0467e5998d887e101/>"
-    Proof:     "<some_dangerous_input_911d4dc4346498b0467e5998d887e101/>"
-
-    Referring page: http://127.0.0.2:4567/
-
-    Affected page:  http://127.0.0.2:4567/xss?a=b%3Csome_dangerous_input_911d4dc4346498b0467e5998d887e101/%3E
-    HTTP request
-    GET /xss?a=b%3Csome_dangerous_input_911d4dc4346498b0467e5998d887e101%2F%3E HTTP/1.1
-    Host: 127.0.0.2:4567
-    Accept-Encoding: gzip, deflate
-    User-Agent: Arachni/v2.0dev
-    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-    Accept-Language: en-US,en;q=0.8,he;q=0.6
-
-    -------------------------------------------------- Reproducing --------------------------------------------------
+     [*] ------------------------------------------------------ Reproducing -------------------------------------------------------
 
      [*] Preparing plugins...
      [*] ... done.
@@ -234,44 +196,74 @@ You should then see something like:
      [*] XSS: Auditing link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
      [*] Harvesting HTTP responses...
      [~] Depending on server responsiveness and network conditions this may take a while.
-     [*] XSS: Analyzing response #4 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
+     [*] XSS: Analyzing response #2 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
      [+] XSS: In link input 'a' with action http://127.0.0.2:4567/xss
      [*] XSS: Analyzing response #0 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
      [+] XSS: In link input 'a' with action http://127.0.0.2:4567/xss
      [*] XSS: Analyzing response #1 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
-     [*] XSS: Analyzing response #2 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
-     [+] XSS: In link input 'a' with action http://127.0.0.2:4567/xss
      [*] XSS: Analyzing response #3 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
+     [*] XSS: Analyzing response #4 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
+     [+] XSS: In link input 'a' with action http://127.0.0.2:4567/xss
      [*] XSS: Analyzing response #5 for link input 'a' pointing to: 'http://127.0.0.2:4567/xss'
 
-    -------------------------------------------------- Seed --------------------------------------------------
 
-    </textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
+     [~] ------------------------------------------------------- Issue seed -------------------------------------------------------
+     [~] You can use this to identify a narrow scope of tainted inputs (params, cookies, etc.) and sinks (response bodies, SQL
+     [~] queries etc.) related to this issue.
+     [~] It is accessible via the 'X-Arachni-Issue-Seed' header.
 
-    You can use the above to identify tainted inputs (params, cookies, etc.) and sinks (response bodies, SQL queries etc.).
-    It is accessible via the 'X-Arachni-Debug-Id' header: env['HTTP_X_ARACHNI_DEBUG_ID']
+    ()"&%1'-;<some_dangerous_input_f8baed11acb08093b3a4b24a30393c0a/>'
 
-    -------------------------------------------------- Request --------------------------------------------------
+     [~] --------------------------------------------------------- Proof ----------------------------------------------------------
 
-    GET /xss?a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E HTTP/1.1
+    <some_dangerous_input_f8baed11acb08093b3a4b24a30393c0a/>
+
+     [~] -------------------------------------------------------- Request ---------------------------------------------------------
+
+    GET /xss?a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_f8baed11acb08093b3a4b24a30393c0a%2F%3E%27 HTTP/1.1
     Host: 127.0.0.2:4567
     Accept-Encoding: gzip, deflate
     User-Agent: Arachni/v2.0dev
     Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
     Accept-Language: en-US,en;q=0.8,he;q=0.6
-    X-Arachni-Debug-Id: </textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
+    X-Arachni-Scan-Seed: f8baed11acb08093b3a4b24a30393c0a
+    X-Arachni-Issue-Replay-Id: f3136422cbc231e31c9d4ccbe0107e26
+    X-Arachni-Issue-Seed: ()"&%1'-;<some_dangerous_input_f8baed11acb08093b3a4b24a30393c0a/>'
+    X-Arachni-Issue-Digest: 2593139878
 
 
-    -------------------------------------------------- Response --------------------------------------------------
+     [~] -------------------------------------------------------- Response ---------------------------------------------------------
 
     HTTP/1.1 200 OK
     Content-Type: text/html;charset=utf-8
     X-XSS-Protection: 1; mode=block
     X-Content-Type-Options: nosniff
     X-Frame-Options: SAMEORIGIN
-    Content-Length: 85
+    Content-Length: 67
 
-    b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
+
+     [+] ================================================== Reproduced 1 issues ===================================================
+     [~] These issues were successfully replayed.
+
+     [+] [2593139878] Cross-Site Scripting (XSS) in link input 'a'
+     [~]   From:  http://127.0.0.2:4567/
+     [~]   At:    http://127.0.0.2:4567/xss?a=b()%22%26%251'-;%3Csome_dangerous_input_f8baed11acb08093b3a4b24a30393c0a/%3E'
+     [~]   Using: b()"&%1'-;<some_dangerous_input_f8baed11acb08093b3a4b24a30393c0a/>'
+
+
+     [-] ==================================================== Missing 0 issues ====================================================
+     [~] All issues were successfully replayed.
+
+
+     [~] ===================================================== Updated report =====================================================
+     [~] Report with reproduced issues saved at:
+     [~]     /home/zapotek/workspace/arachni/127.0.0.2 2016-04-19 21_49_58 +0300.afr
+
+     [~] ======================================================= Scan seed ========================================================
+     [~] You can use this to identify tainted inputs (params, cookies, etc.) and sinks (response bodies, SQL queries etc.).
+     [~] It is accessible via the 'X-Arachni-Scan-Seed' header.
+
+     [~] f8baed11acb08093b3a4b24a30393c0a
 
 #### Step 4
 
@@ -280,13 +272,13 @@ You should then see something like:
 If you step over to the terminal of your web application, you'll see a Pry prompt
 waiting for you, something like:
 
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E HTTP/1.1" 200 85 0.0020
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%253C%252Ftextarea%253E--%253E%253Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%252F%253E%253C%2521--%253Ctextarea%253E HTTP/1.1" 200 107 0.0003
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E HTTP/1.1" 200 57 0.0041
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%2528%2529%2522%2526%25251%2527-%253B%253Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%252F%253E%2527 HTTP/1.1" 200 89 0.0030
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%253Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%252F%253E HTTP/1.1" 200 63 0.0061
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%27 HTTP/1.1" 200 67 0.0052
-    127.0.0.1 - - [16/Apr/2016:22:35:13 +0300] "GET /xss?a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E HTTP/1.1" 200 85 0.0071
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%253C%252Ftextarea%253E--%253E%253Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%252F%253E%253C%2521--%253Ctextarea%253E HTTP/1.1" 200 107 0.0029
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%27 HTTP/1.1" 200 67 0.0004
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%3C%21--%3Ctextarea%3E HTTP/1.1" 200 85 0.0002
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%253Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%252F%253E HTTP/1.1" 200 63 0.0004
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E HTTP/1.1" 200 57 0.0030
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%2528%2529%2522%2526%25251%2527-%253B%253Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%252F%253E%2527 HTTP/1.1" 200 89 0.0002
+    127.0.0.1 - - [19/Apr/2016:21:51:56 +0300] "GET /xss?a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%27 HTTP/1.1" 200 67 0.0094
     [1] pry(#<Arachni::Debug::Rack::Middleware>)>
 
 We're now operating under the context of the middleware, see:
@@ -298,53 +290,55 @@ We're now operating under the context of the middleware, see:
      "rack.multiprocess"=>false,
      "rack.run_once"=>false,
      "SCRIPT_NAME"=>"",
-     "QUERY_STRING"=>"a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E",
+     "QUERY_STRING"=>"a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%27",
      "SERVER_PROTOCOL"=>"HTTP/1.1",
      "SERVER_SOFTWARE"=>"2.14.0",
      "GATEWAY_INTERFACE"=>"CGI/1.2",
      "REQUEST_METHOD"=>"GET",
      "REQUEST_PATH"=>"/xss",
-     "REQUEST_URI"=>"/xss?a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E",
+     "REQUEST_URI"=>"/xss?a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%27",
      "HTTP_VERSION"=>"HTTP/1.1",
      "HTTP_HOST"=>"127.0.0.2:4567",
      "HTTP_ACCEPT_ENCODING"=>"gzip, deflate",
      "HTTP_USER_AGENT"=>"Arachni/v2.0dev",
      "HTTP_ACCEPT"=>"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
      "HTTP_ACCEPT_LANGUAGE"=>"en-US,en;q=0.8,he;q=0.6",
-     "HTTP_X_ARACHNI_DEBUG_ID"=>"</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>",
+     "HTTP_X_ARACHNI_SCAN_SEED"=>"7b092cea4f8784b9b52f0e7da0fbcb88",
+     "HTTP_X_ARACHNI_ISSUE_REPLAY_ID"=>"f8fe8d0bd5305a1e4bceed94b3f68845",
+     "HTTP_X_ARACHNI_ISSUE_SEED"=>"()\"&%1'-;<some_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88/>'",
+     "HTTP_X_ARACHNI_ISSUE_DIGEST"=>"2593139878",
      "SERVER_NAME"=>"127.0.0.2",
      "SERVER_PORT"=>"4567",
      "PATH_INFO"=>"/xss",
      "REMOTE_ADDR"=>"127.0.0.1",
      "puma.socket"=>#<TCPSocket:(closed)>,
      "rack.hijack?"=>true,
-     "rack.hijack"=>#<Puma::Client:0x150b558 @ready=false>,
-     "rack.input"=>#<Puma::NullIO:0x000000030701e0>,
+     "rack.hijack"=>#<Puma::Client:0xf000dc @ready=false>,
+     "rack.input"=>#<Puma::NullIO:0x000000024f6da0>,
      "rack.url_scheme"=>"http",
      "rack.after_reply"=>[],
      "sinatra.commonlogger"=>true,
      "rack.logger"=>
-      #<Logger:0x00000002a15b60
-       @default_formatter=#<Logger::Formatter:0x00000002a15a48 @datetime_format=nil>,
+      #<Logger:0x00000001dff808
+       @default_formatter=#<Logger::Formatter:0x00000001dff7b8 @datetime_format=nil>,
        @formatter=nil,
        @level=1,
-       @logdev=#<Logger::LogDevice:0x00000002a159d0 @dev=#<IO:<STDERR>>, @filename=nil, @mon_count=0, @mon_mutex=#<Thread::Mutex:0x00000002a158b8>, @mon_owner=nil, @shift_age=nil, @shift_size=nil>,
+       @logdev=#<Logger::LogDevice:0x00000001dff768 @dev=#<IO:<STDERR>>, @filename=nil, @mon_count=0, @mon_mutex=#<Thread::Mutex:0x00000001dff718>, @mon_owner=nil, @shift_age=nil, @shift_size=nil>,
        @progname=nil>,
-     "rack.request.query_string"=>"a=b%3C%2Ftextarea%3E--%3E%3Csome_dangerous_input_6ae17bb24cafdd040964c697afe2faeb%2F%3E%3C%21--%3Ctextarea%3E",
-     "rack.request.query_hash"=>{"a"=>"b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>"},
+     "rack.request.query_string"=>"a=b%28%29%22%26%251%27-%3B%3Csome_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88%2F%3E%27",
+     "rack.request.query_hash"=>{"a"=>"b()\"&%1'-;<some_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88/>'"},
      "sinatra.route"=>"GET /xss"}
-    [2] pry(#<Arachni::Debug::Rack::Middleware>)>
 
 Now let's look at some cool stuff.
 
 ##### list_trace_points
 
     [2] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
-    ============================== Request #1 -- </textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>
-    0: [2016-04-16 22:35:13 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:35:13 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:35:13 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:35:13 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #1 -- 2593139878
+    0: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:51:56 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:51:56 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
     => nil
     [3] pry(#<Arachni::Debug::Rack::Middleware>)>
 
@@ -357,10 +351,10 @@ This is a helper method, showing that type of information in a human readable fo
 
     [3] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points
     => {1=>
-      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x000000029daf10>, :timestamp=>2016-04-16 22:35:13 +0300},
-       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x000000029dad30>, :timestamp=>2016-04-16 22:35:13 +0300},
-       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x000000029dabc8>, :timestamp=>2016-04-16 22:35:13 +0300},
-       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x000000029da8a8>, :timestamp=>2016-04-16 22:35:13 +0300}]}
+      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x00000001df0128>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x00000001deff20>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x00000001defd90>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x00000001def840>, :timestamp=>2016-04-19 21:51:56 +0300}]}
     [4] pry(#<Arachni::Debug::Rack::Middleware>)>
 
 This is the actual data behind the `list_trace_points` output.
@@ -390,9 +384,9 @@ We've now moved under the context of the web application, see:
     [1] pry(#<Sinatra::Application>)> __method__
     => :"GET /xss"
     [2] pry(#<Sinatra::Application>)> params
-    => {"a"=>"b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>"}
+    => {"a"=>"b()\"&%1'-;<some_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88/>'"}
     [3] pry(#<Sinatra::Application>)> body
-    => ["b</textarea>--><some_dangerous_input_6ae17bb24cafdd040964c697afe2faeb/><!--<textarea>"]
+    => ["b()\"&%1'-;<some_dangerous_input_7b092cea4f8784b9b52f0e7da0fbcb88/>'"]
 
 **A ha!**
 
@@ -402,70 +396,103 @@ the web application is vulnerable.
 ##### list_trace_points_for_request_id
 
 This is a helper method, allowing us to filter trace points based on the request index,
-in case we're run `arachni_debug_rack_issue` multiple times, for example:
+in case we've run `arachni_reproduce` multiple times, for example:
 
     [1] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
-    ============================== Request #1 -- <some_dangerous_input_341bd0d9d8094eab4c3edbf3dfe708c5/>
-    0: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:50 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:50 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
-    ============================== Request #2 -- <some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>
-    0: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:52 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:52 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
-    [2] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points_for_request_id 1
-    ============================== Request #1 -- <some_dangerous_input_341bd0d9d8094eab4c3edbf3dfe708c5/>
-    0: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:50 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:50 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #1 -- 2593139878
+    0: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:51:56 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:51:56 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #2 -- 2593139878
+    0: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:39 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:39 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #3 -- 2593139878
+    0: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:41 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:41 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    [4] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points_for_request_id 1
+    ============================== Request #1 -- 2593139878
+    0: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:51:56 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:51:56 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
     => nil
 
 ##### trace_points_for_request_id
 
-    [3] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_request_id 1
-    => [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x000000029f2430>, :timestamp=>2016-04-16 22:44:50 +0300},
-     {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x000000029f2138>, :timestamp=>2016-04-16 22:44:50 +0300},
-     {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x000000029f1e68>, :timestamp=>2016-04-16 22:44:50 +0300},
-     {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x000000029f1b20>, :timestamp=>2016-04-16 22:44:50 +0300}]
+    [2] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_request_id 1
+    => [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x00000001df0128>, :timestamp=>2016-04-19 21:51:56 +0300},
+     {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x00000001deff20>, :timestamp=>2016-04-19 21:51:56 +0300},
+     {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x00000001defd90>, :timestamp=>2016-04-19 21:51:56 +0300},
+     {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x00000001def840>, :timestamp=>2016-04-19 21:51:56 +0300}]
 
 Raw data behind `list_trace_points_for_request_id`.
 
 ##### list_trace_points_for_debug_id
 
 This is a helper method, allowing us to filter trace points based on the value
-of the `X-Arachni-Debug-Id` request header, in case we're run `arachni_debug_rack_issue`
+of the `X-Arachni-Issue-Digest` request header, in case we're run `arachni_reproduce`
 multiple times, for example:
 
-    [5] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
-    ============================== Request #1 -- <some_dangerous_input_341bd0d9d8094eab4c3edbf3dfe708c5/>
-    0: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:50 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:50 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:50 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
-    ============================== Request #2 -- <some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>
-    0: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:52 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:52 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    [6] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points
+    ============================== Request #1 -- 2593139878
+    0: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:51:56 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:51:56 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #2 -- 2593139878
+    0: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:39 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:39 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #3 -- 2593139878
+    0: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:41 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:41 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
     => nil
-    [6] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points_for_debug_id '<some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>'
-    ============================== Request #2 -- <some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>
-    0: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
-    1: [2016-04-16 22:44:52 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
-    2: [2016-04-16 22:44:52 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
-    3: [2016-04-16 22:44:52 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    [8] pry(#<Arachni::Debug::Rack::Middleware>)> list_trace_points_for_debug_id '2593139878'
+    ============================== Request #1 -- 2593139878
+    0: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:51:56 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:51:56 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:51:56 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #2 -- 2593139878
+    0: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:39 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:39 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:39 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    ============================== Request #3 -- 2593139878
+    0: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss call in Sinatra::Application#GET /xss
+    1: [2016-04-19 21:54:41 +0300] examples/server.rb:16 Sinatra::Application#GET /xss b_call in Sinatra::Application#GET /xss
+    2: [2016-04-19 21:54:41 +0300] examples/server.rb:17 Sinatra::Application#GET /xss line in Sinatra::Application#GET /xss
+    3: [2016-04-19 21:54:41 +0300] examples/server.rb:18 Sinatra::Application#GET /xss b_return in Sinatra::Application#GET /xss
+    => nil
+
+In this case we've only got one issue so we get all data.
 
 ##### trace_points_for_debug_id
 
-    [12] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_debug_id '<some_dangerous_input_0f4f52bc8fb862287fe86fb6532766d4/>'
-    => {2=>
-      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x007f05ec04b980>, :timestamp=>2016-04-16 22:44:52 +0300},
-       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x007f05ec04b868>, :timestamp=>2016-04-16 22:44:52 +0300},
-       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x007f05ec04b750>, :timestamp=>2016-04-16 22:44:52 +0300},
-       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x007f05ec04b4f8>, :timestamp=>2016-04-16 22:44:52 +0300}]}
+    [9] pry(#<Arachni::Debug::Rack::Middleware>)> trace_points_for_debug_id '2593139878'
+    => {1=>
+      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x00000001df0128>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x00000001deff20>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x00000001defd90>, :timestamp=>2016-04-19 21:51:56 +0300},
+       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x00000001def840>, :timestamp=>2016-04-19 21:51:56 +0300}],
+     2=>
+      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x007f2ff002f748>, :timestamp=>2016-04-19 21:54:39 +0300},
+       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x007f2ff002f630>, :timestamp=>2016-04-19 21:54:39 +0300},
+       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x007f2ff002f518>, :timestamp=>2016-04-19 21:54:39 +0300},
+       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x007f2ff002f2c0>, :timestamp=>2016-04-19 21:54:39 +0300}],
+     3=>
+      [{:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:call, :binding=>#<Binding:0x007f3008062680>, :timestamp=>2016-04-19 21:54:41 +0300},
+       {:path=>"examples/server.rb", :line_number=>16, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_call, :binding=>#<Binding:0x007f3008062568>, :timestamp=>2016-04-19 21:54:41 +0300},
+       {:path=>"examples/server.rb", :line_number=>17, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:line, :binding=>#<Binding:0x007f3008062450>, :timestamp=>2016-04-19 21:54:41 +0300},
+       {:path=>"examples/server.rb", :line_number=>18, :class_name=>"Sinatra::Application", :method_name=>:"GET /xss", :event=>:b_return, :binding=>#<Binding:0x007f30080621f8>, :timestamp=>2016-04-19 21:54:41 +0300}]}
 
 Raw data behind `list_trace_points_for_debug_id`.
 
